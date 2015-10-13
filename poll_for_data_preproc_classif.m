@@ -123,7 +123,7 @@ if sessionN>1
         case 1
             training_labels=arrayfun(@num2str, training_labels, 'UniformOutput', false);
             A = dataset(training_data, training_labels);
-            W = svc(A);
+            W = svc(A, 'p', 2);
             fprintf('\nprSVM classifier trained in %d sec...\n', toc(classif_time));
         case 2
             [mdl, cfs]=train_EN_logreg(training_data, training_labels');
@@ -155,7 +155,7 @@ else
 end
 
 numTotal=cfg.numDummy+1;
-numTrial = cfg.NrOfVols*(sessionN-1);
+numTrial = (cfg.NrOfVols-cfg.numDummy)*(sessionN-1);
 numProper = 0;
 motEst = [];
 
@@ -165,16 +165,17 @@ while 1 %length(files)
 
     GrabVol=tic;
     pause(0.25);
-  %  
+  %  for dicom distorion corrected
+  %%%%%%%%%%name_template=sprintf('f19881016MCBL-0018-%05d*.hdr', numTotal); %% 10, 18
    % name_template=sprintf('prepScan_%d.nii', numTotal);
-   name_template=sprintf('Analyze%05d.hdr', numTotal);
+ name_template=sprintf('Analyze%05d.hdr', numTotal);
     %start timer
     
     %after 1.5 sec check if there is a volume with a number
     
     %close timer
     target=dir(fullfile(cfg.inputDir,name_template));
-    
+       
     if isempty(target)
         fprintf('\nNo new data\n');
         time=toc(GrabVol);
@@ -190,8 +191,8 @@ while 1 %length(files)
     else
         %  notify(H, 'NewData');
         fprintf('\nAvailable volume %i\n', numTotal)
-        
-        filename1=fullfile(cfg.inputDir,name_template);
+        filename1=fullfile(cfg.inputDir,target.name);
+     %%%   filename1=fullfile(cfg.inputDir,name_template);
         vol_hdr=spm_vol(filename1);
         %         vol_vol=spm_read_vols(vol_hdr);
         %         dat=vol_vol(maskvol_vol>0);
@@ -310,34 +311,35 @@ while 1 %length(files)
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         if cfg.correctMotion
             doneHere = 0;
-            
+            hist_file=fullfile(cfg.output, sprintf('history_%s.mat', SubjectID));
             if numProper == 1
-                procScan = single(rawScan);
-                for i=1:length(history)
-                    if isequal(history(i).S, S)
-                        fprintf(1,'Will realign scans to reference model from trial %i session %i...\n', i);
-                        % protocol the same => re-use realignment reference
-                        RRM = history(i).RRM;
-                        break;
-                        %  else
-                        %      RRM=[];
-                        
+                
+                if ~exist(hist_file, 'file')
+                    history = struct('S',[], 'RRM', [], 'motion', []);
+                    RRM = [];
+                else
+                    
+                    load(hist_file);
+                    
+                  
+                    for i=1:length(history)
+                        if isequal(history(i).S, S)
+                            fprintf(1,'Will realign scans to reference model from trial %i...\n', i);
+                            % protocol the same => re-use realignment reference
+                            RRM = history(i).RRM;
+                            break;
+                        end
                     end
                 end
-                
                 % none found - setup new one
                 if isempty(RRM)
-                    
                     flags = struct('mat', S.mat0);
                     fprintf(1,'Setting up first num-dummy scan as reference volume...\n');
-                    
                     RRM = ft_omri_align_init(rawScan, flags);
-                    motEst = zeros(1,6);
-                    curSixDof = zeros(1,6);
-                    
                     history(numTrial).RRM = RRM;
-                    
-               %     procScan = single(rawScan);
+                    curSixDof = zeros(1,6);
+                    motEst = zeros(1,6);
+                    procScan = single(rawScan);
                     doneHere = 1;
                 end
             end
@@ -345,30 +347,31 @@ while 1 %length(files)
             if ~doneHere
                 fprintf('%-30s','Registration...');
                 tic;
-                [RRM, M, Mabs, procScan] = ft_omri_align_scan(RRM, procScan);  %            [RRM, M, Mabs, procScan] = ft_omri_align_scan(RRM, rawScan);
+                [RRM, M, Mabs, procScan] = ft_omri_align_scan(RRM, rawScan);
                 toc
                 curSixDof = hom2six(M);
                 motEst = [motEst; curSixDof.*[1 1 1 180/pi 180/pi 180/pi]];
             end
         else
-            procScan = single(rawScan);   %  procScan = single(procScan);
+            procScan = single(rawScan);
             motEst = [motEst; zeros(1,6)];
         end
         
-%         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%         % slice timing correction
-%         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%         if cfg.correctSliceTime
-%             if numProper == 1
-%                 fprintf(1,'Initialising slice-time correction model...\n');
-%                 STM = ft_omri_slice_time_init(procScan, S.TR, S.deltaT);
-%             else
-%                 fprintf('%-30s','Slice time correction...');
-%                 tic;
-%                 [STM, procScan] = ft_omri_slice_time_apply(STM, procScan);
-%                 toc
-%             end
-%         end
+        
+        %         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %         % slice timing correction
+        %         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %         if cfg.correctSliceTime
+        %             if numProper == 1
+        %                 fprintf(1,'Initialising slice-time correction model...\n');
+        %                 STM = ft_omri_slice_time_init(procScan, S.TR, S.deltaT);
+        %             else
+        %                 fprintf('%-30s','Slice time correction...');
+        %                 tic;
+        %                 [STM, procScan] = ft_omri_slice_time_apply(STM, procScan);
+        %                 toc
+        %             end
+        %         end
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % smoothing
@@ -395,7 +398,7 @@ while 1 %length(files)
             procSample = single(procScan(:));
             %     procSample = procScan(:);
         end
-        
+        %%%%%%%%%%%%%%for dicom no flipping !!!!!!!!!!!!
         procScan=flip(procScan, 2);
         filename=sprintf('prepScan_%i.nii', numProper);
         V=[];

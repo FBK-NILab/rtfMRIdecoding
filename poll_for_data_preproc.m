@@ -86,8 +86,12 @@ while 1 %length(files)
         
     GrabVol=tic;
     pause(0.2);
-    name_template=sprintf('Analyze%05d.hdr', numTotal);
-    
+ name_template=sprintf('Analyze%05d.hdr', numTotal);
+%%%for distortion corrected
+
+%%%%%%%%%name_template=sprintf('f19881016MCBL-0005-%05d*.hdr', numTotal);
+
+
     %start timer
     
     %after 1.5 sec check if there is a volume with a number
@@ -107,7 +111,9 @@ while 1 %length(files)
         %  notify(H, 'NewData');
         fprintf('\nAvailable volume %i\n', numTotal)
         
-        fname=fullfile(cfg.inputDir,name_template);
+   %%%     fname=fullfile(cfg.inputDir,name_template);
+        
+        fname=fullfile(cfg.inputDir,target.name);
         vol_hdr=spm_vol(fname);
         %         vol_vol=spm_read_vols(vol_hdr);
         %         dat=vol_vol(maskvol_vol>0);
@@ -305,8 +311,8 @@ while 1 %length(files)
             %     procSample = procScan(:);
         end
         
-        
-       procScan=flip(procScan, 2);
+    %%%%%%%for dicom no flipping !!!!!!!!!    
+     procScan=flip(procScan, 2);
        % procScan=spm_write_sn(procScan,param,defaults.normalise.write);
         
         filename=sprintf('prepScan_%i.nii', numProper);
