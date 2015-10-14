@@ -44,19 +44,25 @@ for onset=1:length(sess_onsets)
         if length(predLabels_trial)<i
             predLabels_trial(i)=1;
         end
-        
-        % test labels are double; classifier 1 string to double classifier 2 and 3 labels are double
-        if testLabels_trial(i)==predLabels_trial(i);  %str2double(predLabels_trial(i)) %%predLabels_trial(i) %str2double(predLabels_trial(i)) 
-            trial(i)=1;
+        if cfg.Classifier==1
+            if testLabels_trial(i)==str2double(predLabels_trial(i));  % %%predLabels_trial(i) %str2double(predLabels_trial(i))
+                trial(i)=1;
+            end
+        else
+            % test labels are double; classifier 1 string to double classifier 2 and 3 labels are double
+            if testLabels_trial(i)==predLabels_trial(i);  % %%predLabels_trial(i) %str2double(predLabels_trial(i))
+                trial(i)=1;
+            end
         end
     end
-    trial_acc=[trial_acc; trial];   
+    trial_acc=[trial_acc; trial];
     
 end
 
 %find the mean between trials
 accuracy=mean(trial_acc,1);
-
+acc_filename=fullfile(cfg.FeedbackFolder, sprintf('accs_%s_%s_ses%d_classif%d.mat', SubjectID, expType, sessionN, cfg.Classifier));
+save(acc_filename, 'accuracy');
 fig_filename=fullfile(cfg.output, sprintf('accs_%s_%s_ses%d_classif%d.jpg', SubjectID, expType, sessionN, cfg.Classifier));
 h=plot(accuracy);
 title(sprintf('Mean acc per vol in a trial ses %d subj %s experiment type %s', sessionN, SubjectID, expType));
