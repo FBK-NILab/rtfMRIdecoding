@@ -200,14 +200,22 @@ end
 % training_data(1:32, 150)
 % training_data(1:32, 250)
 % training_data(1:32, 350)
-% plot(training_data(1:32, 150))
+% plot(sess_data(1:28, 150))
 % hold on
-% plot(training_data(1:32, 250))
+% plot(sess_data(1:28, 250))
 % hold on
-% plot(training_data(1:32, 320))
-% hold on
+% plot(sess_data(1:28, 320))
+% hold off
 training_data=scaledata(sess_data, 0, 1);
-% training_data(1:32, 150)
-% training_data(1:32, 250)
-% training_data(1:32, 350)
+%  training_data(1:28, 150)
+%  training_data(1:28, 250)
+%  training_data(1:28, 350)
+
+if cfg.saveClassifier==1
+    save_classifier(training_data, training_labels, cfg);
+end
+
+
+
+
 return

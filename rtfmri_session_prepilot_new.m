@@ -22,8 +22,8 @@ UseASFV52;% CHECK FILE NAME !!
 cfg=[];
 session=1;
 disk='C:\Documents\RealTime\';
-accessN='201509301130'; 
-subjectCode='20150930MCBL'; 
+accessN='201509301220'; 
+subjectCode='20150930CARV'; 
 %%%%%%%%%%% paths 1st Run rakes from input run 1 puts into data path run 1
 cfg.inputDir=sprintf('%s%s\\Ser%04d', disk, accessN, session); %'C:\Documents\RealTime\201509301130\Ser0001'; %'C:\Documents\RealTime\20150930MCBL\DiCo_1\'% % DISK Z:\
 cfg.output=sprintf('%s%s\\', disk, subjectCode); %'C:\Documents\RealTime\20150930MCBL\'; %DISK C:\ NO RUN FOLDERS, THIS IS WHERE HISTORY AND PREDICTIONS ARE SAVED
@@ -48,14 +48,14 @@ poll_for_data_preproc(SubjectID, 1, cfg);
 
 %% MASK
 
-SubjectID='MCBL';
+SubjectID='CARV';
 cfg=[];
 
 
 session=1;
 disk='C:\Documents\RealTime\';
-accessN='201509301130'; 
-subjectCode='20150930MCBL'; 
+accessN='201509301220'; 
+subjectCode='20150930CARV'; 
 %%%%%%%%%%% paths 1st Run rakes from input run 1 puts into data path run 1
 
 cfg.output=sprintf('%s%s\\', disk, subjectCode); %'C:\Documents\RealTime\20150930MCBL\'; %DISK C:\ NO RUN FOLDERS, THIS IS WHERE HISTORY AND PREDICTIONS ARE SAVED
@@ -88,7 +88,7 @@ create_spm_design(SubjectID, 1, cfg);
 
 
 %% Functional perception run 2 + retrain classifier
-SubjectID='CARV'; %'MCBL';
+SubjectID='CARV';
 cfg.MultiSubjectID={'20150717IGDB', '20150717ANSN', '20150806PMMN'}; %'20150806MCBL','20150717OIFR',
 UseASFV52;
 
@@ -155,14 +155,20 @@ else
             cfg.mask_name=fullfile(cfg.maskpath, 'Ser0001', 'contrast_mask.hdr');
     end
 end
+
+cfg.maskThreshold= 0.01;
+
 %%%%%%%%%%%%%%% classifier parameters
 cfg.TRtoTake= 3; 
 %rmpath('C:\Users\eust_abbondanza\Documents\MATLAB\prtools'); %FOR
-%CLASSIFIER 2
-cfg.Classifier=1; %1 for prtoolbox svm, 2 for EN logistic regression, 3 for libsvm 4 for glmnet 5 for cosmomvpa classifiers
+
+
+%%%%%%%%%%%%CLASSIFIER OPTIONS
+cfg.Classifier=4; %1 for prtoolbox svm, 2 for EN logistic regression, 3 for libsvm 4 for glmnet 5 for cosmomvpa classifiers
 %lassoglm is in the stats toolbox that is in conflict with other svms, so
 %to switch between the classifiers you needd to pay attention to whether
 %stats toolbox is on the path or not
+ %1 if you want to load a pre-trained classifier
 if cfg.Classifier==2
     rmpath('C:\Users\eust_abbondanza\Documents\MATLAB\prtools');
     addpath('C:\Program Files (x86)\MATLAB\R2015a\toolbox\stats\stats');
@@ -170,6 +176,13 @@ else
     addpath('C:\Users\eust_abbondanza\Documents\MATLAB\prtools');
     rmpath('C:\Program Files (x86)\MATLAB\R2015a\toolbox\stats\stats');
 end
+
+cfg.saveClassifier=1;
+cfg.loadClassifier=1;
+
+% if cfg.loadClassifier==1;
+%     train_and_save_classifier(SubjectID, sessionN, cfg)
+% end
 
 %%%%%%%%%%%
 %cfg.mask_name=fullfile(cfg.maskpath, 'OSC.625.nii');
@@ -183,9 +196,9 @@ end
 
 %cfg.mask_name=fullfile(cfg.maskpath, 'rwOSC.625.nii');
 %cfg.mask_name=fullfile(cfg.maskpath, 'Ser0001', 'contrast_mask.hdr');
-cfg.maskThreshold= 0.01; %0.1; %0.001; %for native space to have more or less 1200 voxels
+ %0.1; %0.001; %for native space to have more or less 1200 voxels
 
-%poll_for_data_preproc_classif(SubjectID, 2, 'Perc', cfg);
+poll_for_data_preproc_classif(SubjectID, 2, 'Perc', cfg);
 
 %just_classify(SubjectID, 2, 'Perc', cfg);
 %poll_for_data_preproc_version1(SubjectID, 2, cfg)
@@ -208,10 +221,10 @@ else
     rmpath('C:\Program Files (x86)\MATLAB\R2015a\toolbox\stats\stats');
 end
 
-session=5;
+session=3;
 disk='C:\Documents\RealTime\';
-accessN='201509301130'; 
-subjectCode='20150930MCBL'; 
+accessN='201509301220'; 
+subjectCode='20150930CARV'; 
 %%%%%%%%%%% paths 1st Run rakes from input run 1 puts into data path run 1
 cfg.inputDir=sprintf('%s%s\\Ser%04d', disk, accessN, session); %'C:\Documents\RealTime\201509301130\Ser0001'; %'C:\Documents\RealTime\20150930MCBL\DiCo_1\'% % DISK Z:\
 cfg.output=sprintf('%s%s\\', disk, subjectCode); %'C:\Documents\RealTime\20150930MCBL\'; %DISK C:\ NO RUN FOLDERS, THIS IS WHERE HISTORY AND PREDICTIONS ARE SAVED
@@ -236,10 +249,10 @@ else
     rmpath('C:\Program Files (x86)\MATLAB\R2015a\toolbox\stats\stats');
 end
 
-session=5;
+session=4;
 disk='C:\Documents\RealTime\';
-accessN='201509301130'; 
-subjectCode='20150930MCBL'; 
+accessN='201509301220'; 
+subjectCode='20150930CARV'; 
 %%%%%%%%%%% paths 1st Run rakes from input run 1 puts into data path run 1
 cfg.inputDir=sprintf('%s%s\\Ser%04d', disk, accessN, session); %'C:\Documents\RealTime\201509301130\Ser0001'; %'C:\Documents\RealTime\20150930MCBL\DiCo_1\'% % DISK Z:\
 cfg.output=sprintf('%s%s\\', disk, subjectCode); %'C:\Documents\RealTime\20150930MCBL\'; %DISK C:\ NO RUN FOLDERS, THIS IS WHERE HISTORY AND PREDICTIONS ARE SAVED

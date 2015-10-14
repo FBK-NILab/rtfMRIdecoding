@@ -3,7 +3,7 @@ function poll_for_data_preproc_classif(SubjectID, sessionN, expType, cfg)
 % every 2 sec look for a file with a name template in a directory
 % send New Data even to the listener
 %listener will print got it and the volume number
- % expType='Perc'; %'Im'
+% expType='Perc'; %'Im'
 ft_defaults
 %ft_hastoolbox('spm8', 1);
 if nargin == 3
@@ -23,9 +23,9 @@ end
 %files = dir(fullfile(Cfg.inputDir,Cfg.name_templates));
 %first non-dummy volume
 
-% defaults.normalise.estimate.smosrc  = 8; 
-% defaults.normalise.estimate.smoref  = 0; 
-% defaults.normalise.estimate.regtype = 'mni'; 
+% defaults.normalise.estimate.smosrc  = 8;
+% defaults.normalise.estimate.smoref  = 0;
+% defaults.normalise.estimate.regtype = 'mni';
 % defaults.normalise.estimate.weight  = '';
 % defaults.normalise.estimate.cutoff  = 25;
 % defaults.normalise.estimate.nits    = 16;
@@ -119,31 +119,69 @@ if sessionN>1
     predicted_labels2=[];
     testLabels=load_session_labels(SubjectID, sessionN, expType, cfg);
     classif_time=tic;
-    switch cfg.Classifier
-        case 1
-            training_labels=arrayfun(@num2str, training_labels, 'UniformOutput', false);
-            A = dataset(training_data, training_labels);
-            W = svc(A, 'p', 2);
-            fprintf('\nprSVM classifier trained in %d sec...\n', toc(classif_time));
-        case 2
-            [mdl, cfs]=train_EN_logreg(training_data, training_labels');
-           %cfs=train_EN_logreg(training_data, training_labels');
-            fprintf('\nElastic net classifier trained in %d sec...\n', toc(classif_time));
+    
+    if cfg.loadClassifier==1
+        classif_template=sprintf('Classifier_%d.mat', cfg.Classifier);
+        target=dir(fullfile(cfg.output,classif_template));
+        
+        if isempty(target)
+            fprintf('\nNo trained classifier found\n');
+            cfg.loadClassifier=0;
+        else
             
-        case 3
+            classif_file=fullfile(cfg.output,classif_template);
+            load(classif_file);
+            switch cfg.Classifier
+                case 1
+                    
+                    W=weights;
+                    
+                case 2
+                    
+                    mdl=regr_model;
+                    cfs=coefs;
+                    
+                case 3
+                    
+                    model=libsvm_model;
+                    
+                case 4
+                    
+                    fit=regression_fit;
+            end
             
-        %    training_labels=arrayfun(@num2str, training_labels, 'UniformOutput', false);
-            model = svmtrain(double(training_labels), double(training_data), '-s 1 -t  2 -c 1 -q'); % '-s 1 -t 0 -q'
-            
-            fprintf('\nlibSVM classifier trained in %d sec...\n', toc(classif_time));
-            
-            
-        case 4
-            options.alpha =  0.9;
-            fit = cvglmnet(training_data, training_labels, 'binomial', options);
-            
-                  
-            
+        end
+        
+    elseif cfg.loadClassifier==0
+        switch cfg.Classifier
+            case 1
+                training_labels=arrayfun(@num2str, training_labels, 'UniformOutput', false);
+                A = dataset(training_data, training_labels);
+                W = nusvc(A); %svc(A, 'p', 2);
+                
+                
+                
+                fprintf('\nprSVM classifier trained in %d sec...\n', toc(classif_time));
+            case 2
+                [mdl, cfs]=train_EN_logreg(training_data, training_labels');
+                %cfs=train_EN_logreg(training_data, training_labels');
+                fprintf('\nElastic net classifier trained in %d sec...\n', toc(classif_time));
+                
+            case 3
+                
+                %    training_labels=arrayfun(@num2str, training_labels, 'UniformOutput', false);
+                model = svmtrain(double(training_labels), double(training_data), '-s 1 -t  2 -c 1 -q'); % '-s 1 -t 0 -q'
+                
+                fprintf('\nlibSVM classifier trained in %d sec...\n', toc(classif_time));
+                
+                
+            case 4
+                options.alpha =  0.9;
+                fit = cvglmnet(training_data, training_labels, 'binomial', options);
+                
+                
+                
+        end
     end
 end
 hist_file=fullfile(cfg.output, sprintf('history_%s.mat', SubjectID));
@@ -162,20 +200,20 @@ motEst = [];
 
 while 1 %length(files)
     waiting_time=0;
-
+    
     GrabVol=tic;
     pause(0.25);
-  %  for dicom distorion corrected
-  %%%%%%%%%%name_template=sprintf('f19881016MCBL-0018-%05d*.hdr', numTotal); %% 10, 18
-   % name_template=sprintf('prepScan_%d.nii', numTotal);
- name_template=sprintf('Analyze%05d.hdr', numTotal);
+    %  for dicom distorion corrected
+    %%%%%%%%% name_template=sprintf('f19881103CARV-0020-%05d*.hdr', numTotal); %% 10, 18 %% 7 12 16 20
+    % name_template=sprintf('prepScan_%d.nii', numTotal);
+    name_template=sprintf('Analyze%05d.hdr', numTotal);
     %start timer
     
     %after 1.5 sec check if there is a volume with a number
     
     %close timer
     target=dir(fullfile(cfg.inputDir,name_template));
-       
+    
     if isempty(target)
         fprintf('\nNo new data\n');
         time=toc(GrabVol);
@@ -192,11 +230,11 @@ while 1 %length(files)
         %  notify(H, 'NewData');
         fprintf('\nAvailable volume %i\n', numTotal)
         filename1=fullfile(cfg.inputDir,target.name);
-     %%%   filename1=fullfile(cfg.inputDir,name_template);
+        %%%   filename1=fullfile(cfg.inputDir,name_template);
         vol_hdr=spm_vol(filename1);
         %         vol_vol=spm_read_vols(vol_hdr);
         %         dat=vol_vol(maskvol_vol>0);
-      %  dat=spm_read_vols(vol_hdr);
+        %  dat=spm_read_vols(vol_hdr);
         
         rawScan=spm_read_vols(vol_hdr);
         
@@ -204,7 +242,7 @@ while 1 %length(files)
         S=[];
         S.TR=cfg.TR;
         S.voxdim=double([3.0000 3.0000 3.600]); %vol_hdr.pixdim(1:3)
-        S.voxels=vol_hdr.dim; 
+        S.voxels=vol_hdr.dim;
         S.mat0=vol_hdr.mat;
         S.numEchos=1;
         S.vx=vol_hdr.dim(1);
@@ -241,7 +279,7 @@ while 1 %length(files)
             smOff   = [0 0 0];
         end
         
-    
+        
         
         % store current info structure in history
         numTrial  = numTrial + 1;
@@ -249,13 +287,13 @@ while 1 %length(files)
         disp(S)
         
         fprintf(1,'Starting to process\n');
-      %  numTotal  = cfg.numDummy * S.numEchos;
-      
+        %  numTotal  = cfg.numDummy * S.numEchos;
+        
         
         % Loop this as long as the experiment runs with the same protocol (= data keeps coming in)
         
         % determine number of samples available in buffer / wait for more than numTotal
-    %    threshold.nsamples = numTotal + S.numEchos - 1;
+        %    threshold.nsamples = numTotal + S.numEchos - 1;
         
         %CHECK FUNCTION !!!!!!!!!!!!!!!
         % % %             newNum = ft_poll_buffer(cfg.input, threshold, 500);
@@ -287,10 +325,10 @@ while 1 %length(files)
         numProper = numProper + 1;
         
         
-%        rawScan = single(reshape(dat, S.voxels));
-      
-      
-      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %        rawScan = single(reshape(dat, S.voxels));
+        
+        
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % slice timing correction
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         if cfg.correctSliceTime
@@ -304,7 +342,7 @@ while 1 %length(files)
                 toc
             end
         end
-      
+        
         
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % motion correction
@@ -321,10 +359,10 @@ while 1 %length(files)
                     
                     load(hist_file);
                     
-                  
+                    
                     for i=1:length(history)
                         if isequal(history(i).S, S)
-                            fprintf(1,'Will realign scans to reference model from trial %i...\n', i);
+                            fprintf(1,'Will realign scans to reference model from trial %d session %d ...\n', i);
                             % protocol the same => re-use realignment reference
                             RRM = history(i).RRM;
                             break;
@@ -412,7 +450,7 @@ while 1 %length(files)
         %              procScan=flip(procScan, 2);
         %         end
         %
-   
+        
         
         V.fname=fullfile(run_path, filename);
         V.pixdim=S.voxdim;
@@ -466,8 +504,8 @@ while 1 %length(files)
         % force Matlab to update the figure
         drawnow
         
-               
-         if cfg.normalize2MNI==1
+        
+        if cfg.normalize2MNI==1
             param=load(cfg.matname);
             spm_write_sn(V.fname,param);
             procScan1_hdr=spm_vol(fullfile(run_path, sprintf('wprepScan_%d.nii', numProper)));
@@ -495,16 +533,16 @@ while 1 %length(files)
                     estimate = labeld(Bc)
                     predicted_labels1=vertcat(predicted_labels1, estimate);
                     correct(end+1) = (str2double(estimate)==str2double(testLabels(numProper)));%str2num(testLabel)
-               %  correct(end+1) = (estimate==str2double(testLabels(numTotal)));%str2num(testLabel)
+                    %  correct(end+1) = (estimate==str2double(testLabels(numTotal)));%str2num(testLabel)
                 case 2
-                     test_label1 = predict(mdl,testSample);
-%                     if test_label1>0.5
-%                         estimate=1;
-%                     else
-%                         estimate=0;
-%                     end
-%                   predicted_labels1=vertcat(predicted_labels1, estimate);
-                  %  test_label1=glmval(cfs, testSample, 'logit');
+                    test_label1 = predict(mdl,testSample);
+                    %                     if test_label1>0.5
+                    %                         estimate=1;
+                    %                     else
+                    %                         estimate=0;
+                    %                     end
+                    %                   predicted_labels1=vertcat(predicted_labels1, estimate);
+                    %  test_label1=glmval(cfs, testSample, 'logit');
                     
                     if test_label1>0.5
                         estimate=1;
@@ -533,10 +571,10 @@ while 1 %length(files)
                     testLabels(numProper);
                     predicted_labels1=vertcat(predicted_labels1, estimate);
                     correct(end+1) = (estimate==str2double(testLabels(numProper)));
-%                     estimate(1)
-%                     estimate(100)
-
-
+                    %                     estimate(1)
+                    %                     estimate(100)
+                    
+                    
                 case 5
                     
                     %  estimate = cosmo_classify_lda(training_data, training_labels, testSample);
@@ -545,22 +583,22 @@ while 1 %length(files)
                     %  estimate = cosmo_classify_svm(double(training_data), double(training_labels), double(testSample));
                     
                     estimate = cosmo_classify_naive_bayes(training_data, training_labels, testSample);
-                 
-                 %   estimate = cosmo_classify_selective_naive_bayes(training_data, training_labels, testSample);
-                 
-                  % estimate = cosmo_classify_matlabsvm(double(training_data), double(training_labels), double(testSample));
-                %  if matlabsvm is to be used libsvm should be removed from
-                %  matlab path
+                    
+                    %   estimate = cosmo_classify_selective_naive_bayes(training_data, training_labels, testSample);
+                    
+                    % estimate = cosmo_classify_matlabsvm(double(training_data), double(training_labels), double(testSample));
+                    %  if matlabsvm is to be used libsvm should be removed from
+                    %  matlab path
                     predicted_labels1=vertcat(predicted_labels1, estimate);
                     correct(end+1) = (estimate==str2double(testLabels(numProper)));
-
-
+                    
+                    
             end
-     %       str2double(testLabels(numTotal))
+            %       str2double(testLabels(numTotal))
             %for logistic regression
             
             %for svm
-        %    
+            %
             fprintf('classification rate = %d%%\n', round(mean(correct)*100));
         end
         
@@ -568,17 +606,17 @@ while 1 %length(files)
         if cfg.Feedback==1
             fname_classif=fullfile(cfg.FeedbackFolder, sprintf('pred_labels_%s_%s_%d.mat', SubjectID, expType, sessionN));
             save(fname_classif, 'predicted_labels1');
-%             if cfg.Classifier==1
-%                 estimate=str2double(estimate);
-%                 save(fname_classif, estimate)
-%             else
-%                 save(fname_classif, 'estimate')
-%             end
-%             
+            %             if cfg.Classifier==1
+            %                 estimate=str2double(estimate);
+            %                 save(fname_classif, estimate)
+            %             else
+            %                 save(fname_classif, 'estimate')
+            %             end
+            %
         end
         fprintf('Volume processed in %f\n', toc(GrabVol));
         if numTotal==cfg.NrOfVols
-                        
+            
             fname_hist=fullfile(cfg.output, sprintf('history_%s.mat', SubjectID));
             save(fname_hist, 'history');
             fname_labels=fullfile(cfg.output, sprintf('pred_labels_%s_%s_%d.mat', SubjectID, expType, sessionN));
@@ -589,7 +627,7 @@ while 1 %length(files)
             numTotal  = numTotal + S.numEchos;
             
         end
-      
+        
         % time=toc;
         %write event
         %addlistener(input_dir_search,'NewVol',my_omri_pipeline) %the listener gets the signal and starts the preprocessing, event.listener
