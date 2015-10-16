@@ -2,7 +2,7 @@
 
 clear all
 clear classes
-SubjectID='CARV';
+SubjectID='FATR';
 
 UseASFV52;% CHECK FILE NAME !!
 
@@ -22,8 +22,8 @@ UseASFV52;% CHECK FILE NAME !!
 cfg=[];
 session=1;
 disk='C:\Documents\RealTime\';
-accessN='201509301220'; 
-subjectCode='20150930CARV'; 
+accessN='201507141030'; 
+subjectCode='20150714FATR'; 
 %%%%%%%%%%% paths 1st Run rakes from input run 1 puts into data path run 1
 cfg.inputDir=sprintf('%s%s\\Ser%04d', disk, accessN, session); %'C:\Documents\RealTime\201509301130\Ser0001'; %'C:\Documents\RealTime\20150930MCBL\DiCo_1\'% % DISK Z:\
 cfg.output=sprintf('%s%s\\', disk, subjectCode); %'C:\Documents\RealTime\20150930MCBL\'; %DISK C:\ NO RUN FOLDERS, THIS IS WHERE HISTORY AND PREDICTIONS ARE SAVED
@@ -48,14 +48,14 @@ poll_for_data_preproc(SubjectID, 1, cfg);
 
 %% MASK
 
-SubjectID='CARV';
+SubjectID='ANSN';
 cfg=[];
 
 
-session=1;
+session=2;
 disk='C:\Documents\RealTime\';
-accessN='201509301220'; 
-subjectCode='20150930CARV'; 
+accessN='201507171130'; 
+subjectCode='20150717ANSN'; 
 %%%%%%%%%%% paths 1st Run rakes from input run 1 puts into data path run 1
 
 cfg.output=sprintf('%s%s\\', disk, subjectCode); %'C:\Documents\RealTime\20150930MCBL\'; %DISK C:\ NO RUN FOLDERS, THIS IS WHERE HISTORY AND PREDICTIONS ARE SAVED
@@ -65,11 +65,12 @@ cfg.protocolpath=sprintf('%s%s\\', disk, subjectCode); %sprintf('%sPROTOCOLS\\')
 
 cfg.numDummy=5;
 cfg.TRtoTake= 3; 
+
+
+
 %cfg.subjBirthdate='19881016';
 %obtain_mask_spm_epi(SubjectID, cfg);
-
-
-obtain_mask_spm_epi_test(SubjectID, cfg);
+%obtain_mask_spm_epi_test(SubjectID, cfg);
 %obtain_mask_spm_epi_anat(SubjectID, cfg);
 
 %if instead of mask we normalize
@@ -86,21 +87,27 @@ obtain_mask_spm_epi_test(SubjectID, cfg);
 
 create_spm_design(SubjectID, 1, cfg);
 
+cfg.saveClassifier=1;
+% 
+if cfg.saveClassifier==1;
+    train_and_save_classifier(SubjectID, sessionN, cfg)
+end
+
 
 %% Functional perception run 2 + retrain classifier
-SubjectID='CARV';
-cfg.MultiSubjectID={'20150717IGDB', '20150717ANSN', '20150806PMMN'}; %'20150806MCBL','20150717OIFR',
+SubjectID='FATR';
+cfg.MultiSubjectID={'20150930MCBL', '20150717ANSN', '20150806PMMN'}; %'20150806MCBL','20150717OIFR',
 UseASFV52;
 
 %%%%%General experiment options
-cfg.multiSubj=0;
+cfg.multiSubj=1;
 cfg.Feedback=0;
 cfg.voxelSelection=1; %1 for group  maps, 2 for spm contrast clusters
 %%%%%%%%%%%%% paths Run 2 rakes from input run 2 puts into data path run 2
 session=2;
 disk='C:\Documents\RealTime\';
-accessN='201509301220'; 
-subjectCode='20150930CARV'; 
+accessN='201507141030'; 
+subjectCode='20150714FATR'; 
 %%%%%%%%%%% paths 1st Run rakes from input run 1 puts into data path run 1
 cfg.inputDir=sprintf('%s%s\\Ser%04d', disk, accessN, session); %'C:\Documents\RealTime\201509301130\Ser0001'; %'C:\Documents\RealTime\20150930MCBL\DiCo_1\'% % DISK Z:\
 cfg.output=sprintf('%s%s\\', disk, subjectCode); %'C:\Documents\RealTime\20150930MCBL\'; %DISK C:\ NO RUN FOLDERS, THIS IS WHERE HISTORY AND PREDICTIONS ARE SAVED
@@ -134,7 +141,7 @@ cfg.ref_image=fullfile(cfg.dataPath, 'mean.hdr');
 %%%%%%%%%%%% preprocessing options
 cfg.smoothFWHM = 0;
 cfg.correctMotion = 1;
-cfg.normalize2MNI = 0;
+cfg.normalize2MNI = 1;
 cfg.correctSliceTime = 1;
 if cfg.multiSubj==1; 
     cfg.normalize2MNI = 1;
@@ -152,7 +159,7 @@ else
             cfg.mask_name=fullfile(cfg.maskpath, 'rwOSC.625.nii');
             
         case 2
-            cfg.mask_name=fullfile(cfg.maskpath, 'Ser0001', 'contrast_mask.hdr');
+            cfg.mask_name=fullfile(cfg.maskpath, 'Ser0001', 'spm_contrast.hdr');
     end
 end
 
@@ -164,25 +171,25 @@ cfg.TRtoTake= 3;
 
 
 %%%%%%%%%%%%CLASSIFIER OPTIONS
-cfg.Classifier=4; %1 for prtoolbox svm, 2 for EN logistic regression, 3 for libsvm 4 for glmnet 5 for cosmomvpa classifiers
+cfg.Classifier=3; %1 for prtoolbox svm, 2 for EN logistic regression, 3 for libsvm 4 for glmnet 5 for cosmomvpa classifiers
 %lassoglm is in the stats toolbox that is in conflict with other svms, so
 %to switch between the classifiers you needd to pay attention to whether
 %stats toolbox is on the path or not
  %1 if you want to load a pre-trained classifier
 if cfg.Classifier==2
     rmpath('C:\Users\eust_abbondanza\Documents\MATLAB\prtools');
+    rmpath('C:\Users\eust_abbondanza\Documents\MATLAB\prtools5\prtools');
     addpath('C:\Program Files (x86)\MATLAB\R2015a\toolbox\stats\stats');
 else 
     addpath('C:\Users\eust_abbondanza\Documents\MATLAB\prtools');
+    
+    addpath('C:\Users\eust_abbondanza\Documents\MATLAB\prtools5');
+    addpath('C:\Users\eust_abbondanza\Documents\MATLAB\prtools5\prtools');
     rmpath('C:\Program Files (x86)\MATLAB\R2015a\toolbox\stats\stats');
 end
 
-cfg.saveClassifier=1;
-cfg.loadClassifier=1;
+%%%%%%%%%%%%
 
-% if cfg.loadClassifier==1;
-%     train_and_save_classifier(SubjectID, sessionN, cfg)
-% end
 
 %%%%%%%%%%%
 %cfg.mask_name=fullfile(cfg.maskpath, 'OSC.625.nii');
@@ -209,35 +216,41 @@ poll_for_data_preproc_classif(SubjectID, 2, 'Perc', cfg);
 %Analyze output and show accuracy
 %%%%%%%%%%%%% paths Run 3 rakes from input run 3 puts into data path run 3
 
-cfg.Classifier=1; %1 for prtoolbox svm, 2 for EN logistic regression, 3 for libsvm 4 for glmnet 5 for cosmomvpa classifiers
+cfg.Classifier=3; %1 for prtoolbox svm, 2 for EN logistic regression, 3 for libsvm 4 for glmnet 5 for cosmomvpa classifiers
 %lassoglm is in the stats toolbox that is in conflict with other svms, so
 %to switch between the classifiers you needd to pay attention to whether
 %stats toolbox is on the path or not
 if cfg.Classifier==2
     rmpath('C:\Users\eust_abbondanza\Documents\MATLAB\prtools');
+    rmpath('C:\Users\eust_abbondanza\Documents\MATLAB\prtools5\prtools');
     addpath('C:\Program Files (x86)\MATLAB\R2015a\toolbox\stats\stats');
 else 
-    addpath('C:\Users\eust_abbondanza\Documents\MATLAB\prtools');
+    rmpath('C:\Users\eust_abbondanza\Documents\MATLAB\prtools');
+    rmpath('C:\Program Files (x86)\MATLAB\R2015a\toolbox\shared' );
+    addpath('C:\Users\eust_abbondanza\Documents\MATLAB\prtools5');
+    addpath('C:\Users\eust_abbondanza\Documents\MATLAB\prtools5\prtools');
     rmpath('C:\Program Files (x86)\MATLAB\R2015a\toolbox\stats\stats');
 end
 
-session=3;
+session=5;
 disk='C:\Documents\RealTime\';
-accessN='201509301220'; 
-subjectCode='20150930CARV'; 
+accessN='201509301130'; 
+subjectCode='20150930MCBL'; 
 %%%%%%%%%%% paths 1st Run rakes from input run 1 puts into data path run 1
 cfg.inputDir=sprintf('%s%s\\Ser%04d', disk, accessN, session); %'C:\Documents\RealTime\201509301130\Ser0001'; %'C:\Documents\RealTime\20150930MCBL\DiCo_1\'% % DISK Z:\
 cfg.output=sprintf('%s%s\\', disk, subjectCode); %'C:\Documents\RealTime\20150930MCBL\'; %DISK C:\ NO RUN FOLDERS, THIS IS WHERE HISTORY AND PREDICTIONS ARE SAVED
 cfg.dataPath=sprintf('%s%s\\', disk, subjectCode); % DISK C:\ ETC THIS ONE SHOULD HAVE RUNS IN IT !!! where the classifier takes them to be trained
 
 %%%%%%%%%%%
+%train_and_save_classifier(SubjectID, 3, cfg);
+%%%%
 poll_for_data_preproc_classif(SubjectID, 3, 'Im', cfg);
 
 %% Functional imagery run 2 + retrain classifier
 
 %Analyze output and show accuracy
 %%%%%%%%%%%%% paths Run 4 rakes from input run 4 puts into data path run 3
-cfg.Classifier=1; %1 for prtoolbox svm, 2 for EN logistic regression, 3 for libsvm 4 for glmnet 5 for cosmomvpa classifiers
+cfg.Classifier=3; %1 for prtoolbox svm, 2 for EN logistic regression, 3 for libsvm 4 for glmnet 5 for cosmomvpa classifiers
 %lassoglm is in the stats toolbox that is in conflict with other svms, so
 %to switch between the classifiers you needd to pay attention to whether
 %stats toolbox is on the path or not
@@ -251,12 +264,15 @@ end
 
 session=4;
 disk='C:\Documents\RealTime\';
-accessN='201509301220'; 
-subjectCode='20150930CARV'; 
+accessN='201507141030'; 
+subjectCode='20150714FATR'; 
 %%%%%%%%%%% paths 1st Run rakes from input run 1 puts into data path run 1
 cfg.inputDir=sprintf('%s%s\\Ser%04d', disk, accessN, session); %'C:\Documents\RealTime\201509301130\Ser0001'; %'C:\Documents\RealTime\20150930MCBL\DiCo_1\'% % DISK Z:\
 cfg.output=sprintf('%s%s\\', disk, subjectCode); %'C:\Documents\RealTime\20150930MCBL\'; %DISK C:\ NO RUN FOLDERS, THIS IS WHERE HISTORY AND PREDICTIONS ARE SAVED
 cfg.dataPath=sprintf('%s%s\\', disk, subjectCode); % DISK C:\ ETC THIS ONE SHOULD HAVE RUNS IN IT !!! where the classifier takes them to be trained
+
+%%%%%%%%%%%
+%train_and_save_classifier(SubjectID, 3, cfg);
 
 %%%%%%%%%%%
 poll_for_data_preproc_classif(SubjectID, 4, 'Im', cfg);

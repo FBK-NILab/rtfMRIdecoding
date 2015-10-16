@@ -1,4 +1,5 @@
-function [training_data, training_labels]=train_classifier(subjectID, rN, cfg)
+function [mymin, myrange, training_data, training_labels]=train_classifier(subjectID, rN, cfg)
+%[min, range, training_data, training_labels]=train_classifier(subjectID, rN, cfg)
 if nargin<3
     cfg=[];
     
@@ -206,14 +207,21 @@ end
 % hold on
 % plot(sess_data(1:28, 320))
 % hold off
-training_data=scaledata(sess_data, 0, 1);
+
+% mymean=mean2(sess_data);
+% mystd=std2(sess_data);
+% training_data=(sess_data-mymean)/mystd;
+
+
+[mymin, myrange, training_data]=myscaledata(sess_data, 0, 1);
+
 %  training_data(1:28, 150)
 %  training_data(1:28, 250)
 %  training_data(1:28, 350)
 
-if cfg.saveClassifier==1
-    save_classifier(training_data, training_labels, cfg);
-end
+% if cfg.saveClassifier==1
+%     save_classifier(training_data, training_labels, cfg);
+% end
 
 
 

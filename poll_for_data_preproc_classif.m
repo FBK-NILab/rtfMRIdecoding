@@ -110,55 +110,36 @@ maskvol_hdr=spm_vol(cfg.mask_name);
 maskvol_vol=spm_read_vols(maskvol_hdr);
 if sessionN>1
     
-    if cfg.multiSubj==1
-        [training_data, training_labels]=train_multisubj_classifier(sessionN, cfg);
-    else
-        [training_data, training_labels]=train_classifier(SubjectID, sessionN, cfg);
-    end
+    
+    %%%   [training_data, training_labels]=train_classifier(SubjectID, sessionN, cfg);
+    
     predicted_labels1 = [];
     predicted_labels2=[];
     testLabels=load_session_labels(SubjectID, sessionN, expType, cfg);
     classif_time=tic;
     
-    if cfg.loadClassifier==1
-        classif_template=sprintf('Classifier_%d.mat', cfg.Classifier);
-        target=dir(fullfile(cfg.output,classif_template));
+    
+    classif_template=sprintf('Classifier_%d.mat', cfg.Classifier);
+    target=dir(fullfile(cfg.output,classif_template));
+    
+    if isempty(target)
+        fprintf('\nNo trained classifier found, will train one .. \n');
         
-        if isempty(target)
-            fprintf('\nNo trained classifier found\n');
-            cfg.loadClassifier=0;
+        
+        
+        if cfg.multiSubj==1
+            [mymin, myrange, training_data, training_labels]=train_multisubj_classifier(sessionN, cfg);
         else
-            
-            classif_file=fullfile(cfg.output,classif_template);
-            load(classif_file);
-            switch cfg.Classifier
-                case 1
-                    
-                    W=weights;
-                    
-                case 2
-                    
-                    mdl=regr_model;
-                    cfs=coefs;
-                    
-                case 3
-                    
-                    model=libsvm_model;
-                    
-                case 4
-                    
-                    fit=regression_fit;
-            end
+            [mymin, myrange, training_data, training_labels]=train_classifier(SubjectID, sessionN, cfg);
             
         end
-        
-    elseif cfg.loadClassifier==0
         switch cfg.Classifier
             case 1
                 training_labels=arrayfun(@num2str, training_labels, 'UniformOutput', false);
                 A = dataset(training_data, training_labels);
-                W = nusvc(A); %svc(A, 'p', 2);
-                
+                %[W, kernel, nu] = rbsvc(A); %W=nusvc(A); %W=svc(A, 'p', 2);
+                W=svc(A, 'p', 2);
+                %   W=nusvc(A,'r',1);
                 
                 
                 fprintf('\nprSVM classifier trained in %d sec...\n', toc(classif_time));
@@ -170,7 +151,9 @@ if sessionN>1
             case 3
                 
                 %    training_labels=arrayfun(@num2str, training_labels, 'UniformOutput', false);
-                model = svmtrain(double(training_labels), double(training_data), '-s 1 -t  2 -c 1 -q'); % '-s 1 -t 0 -q'
+                [myc, myg]= libsvm_param_selection(training_data, training_labels);
+                params=sprintf('-s 1 -t 2 -g %d -c %d -q', myg, myc);
+                model = svmtrain(double(training_labels), double(training_data), params); %'-s 1 -t 2 -g myg -c myc -q'); % '-s 1 -t 0 -g 1 -c 10-q'
                 
                 fprintf('\nlibSVM classifier trained in %d sec...\n', toc(classif_time));
                 
@@ -179,11 +162,37 @@ if sessionN>1
                 options.alpha =  0.9;
                 fit = cvglmnet(training_data, training_labels, 'binomial', options);
                 
-                
-                
         end
+        
+        
+    else
+        
+        classif_file=fullfile(cfg.output,classif_template);
+        load(classif_file);
+        switch cfg.Classifier
+            case 1
+                
+                W=weights;
+                
+            case 2
+                
+                mdl=regr_model;
+                cfs=coefs;
+                
+            case 3
+                
+                model=libsvm_model;
+                
+            case 4
+                
+                fit=regression_fit;
+        end
+        
     end
+ 
+    
 end
+
 hist_file=fullfile(cfg.output, sprintf('history_%s.mat', SubjectID));
 if ~exist(hist_file, 'file')
     history = struct('S',[], 'RRM', [], 'motion', []);
@@ -511,12 +520,22 @@ while 1 %length(files)
             procScan1_hdr=spm_vol(fullfile(run_path, sprintf('wprepScan_%d.nii', numProper)));
             procScan1=spm_read_vols(procScan1_hdr);
             
-            %  testSample=procScan1(maskvol_vol>cfg.maskThreshold)';
-            testSample=scaledata((procScan1(maskvol_vol>cfg.maskThreshold))', 0, 1);
+              testSample=procScan1(maskvol_vol>cfg.maskThreshold)';
+         %   testSample=scaledata((procScan1(maskvol_vol>cfg.maskThreshold))', 0, 1);
+          
+         %%%%various ways of normalizing
+     %%%%    testSample=(testSample-mean(testSample))/std(testSample);
+           testSample=(testSample-mymin)/myrange; 
         else
             
             %       procScan=flip(procScan, 2);
-            testSample=scaledata((procScan(maskvol_vol>cfg.maskThreshold))', 0, 1);
+        %    testSample=scaledata((procScan(maskvol_vol>cfg.maskThreshold))', 0, 1);
+        testSample=procScan(maskvol_vol>cfg.maskThreshold)';
+                
+        %%%%various ways of normalizing
+      %%%%   testSample=(testSample-mean(testSample))/std(testSample);
+           testSample=(testSample-mymin)/myrange; 
+        
         end
         
         % testSample=double(procScan);

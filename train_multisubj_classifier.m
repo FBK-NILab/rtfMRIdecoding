@@ -1,4 +1,4 @@
-function [training_data, training_labels]=train_multisubj_classifier(rN, cfg)
+function [min, range, training_data, training_labels]=train_multisubj_classifier(runN, cfg)
 
 if nargin<2
     cfg=[];
@@ -41,7 +41,7 @@ maskvol_hdr=spm_vol(cfg.mask_name);
 maskvol_vol=spm_read_vols(maskvol_hdr);
 %size(maskvol_vol)
 training_labels=[];
-training_data=[];
+sess_data=[];
 %%%%%%%%%%%%%%%
 %debug_number=10;
 for subj=1:length(cfg.MultiSubjectID)
@@ -49,7 +49,7 @@ for subj=1:length(cfg.MultiSubjectID)
     subject=cfg.MultiSubjectID{subj};
     subjectID=subject(9:12);
     subjectPath=fullfile(cfg.allSubjPath, subject);
-    for session=rN-1 %1:rN-1
+    for session=runN-1 %1:rN-1
         [onsets, sess_labels]=create_training_ds(subjectID, session, cfg);
         run_path=sprintf('%s\\Ser%04d', subjectPath, session);%debug
         %%%%%%%%%% run_path=sprintf('%sRun%i', cfg.dataPath, session);
@@ -73,8 +73,8 @@ for subj=1:length(cfg.MultiSubjectID)
             
             vol_vol=vol_vol(maskvol_vol>cfg.maskThreshold);%reshape(vol_vol, 1, numel(vol_vol));
             %     size(vol_vol)
-            training_data=vertcat(training_data, vol_vol');
-            training_data=scaledata(training_data, 0, 1);
+            sess_data=vertcat(sess_data, vol_vol');
+     %       training_data=scaledata(training_data, 0, 1);
         end
         
     end
@@ -82,5 +82,17 @@ end
 
 %size(training_labels)
 %size(training_data)
+
+[min, range, training_data]=myscaledata(sess_data, 0, 1);
+
+%  training_data(1:28, 150)
+%  training_data(1:28, 250)
+%  training_data(1:28, 350)
+
+% if cfg.saveClassifier==1
+%     save_classifier(training_data, training_labels, cfg);
+% end
+
+
 
 return
